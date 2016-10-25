@@ -2,7 +2,8 @@ var fs = require("fs");
 const readline = require('readline');
 var fileName = "Indicators.csv";
 
-var dataArr = [], csvObjArr = [], jsonObjArr = [];
+var dataArr = [], csvObjArr = [], jsonObjArr = [], code = new Set();
+var count, sum, average, countryName, codeOfCountry;
 function CSVObj(countryName, countryCode, indicatorName, indicatorCode, year, values) {
   this.countryName = countryName;
   this.countryCode = countryCode;
@@ -11,6 +12,11 @@ function CSVObj(countryName, countryCode, indicatorName, indicatorCode, year, va
   this.year = year;
   this.values = values;
 };
+
+function JSONObj(countryName, averageValue) {
+  this.countryName = countryName;
+  this.averageValue = averageValue;
+}
 
 const rl = readline.createInterface({
   input: fs.createReadStream(fileName),
@@ -31,13 +37,74 @@ rl.on('line', function(line) {
   }
   counter++;
 });
+
+function findAverage(sum, count) {
+    average = sum/count;
+    //console.log('Count::'+count+'\n');
+}
+function createJSONObject(countryName, average, codeOfCountry) {
+    //console.log(sum+'==>'+average);
+    var obj = new JSONObj(countryName, average);
+    jsonObjArr.push(obj);
+    code.add(codeOfCountry);
+}
 rl.on('close', function () {
-  csvObjArr.sort(function(a, b) {
-    var value1 = a['values'];
-    var value2 = b['values'];
+
+  for(var i = 0; i < csvObjArr.length; i++) {
+    var codeLength = code.size;
+    count = 0;
+    sum = 0;
+    //countryName = '';
+    for(var j = 1; j < csvObjArr.length; j++) {
+      if((csvObjArr[i].countryCode === csvObjArr[j].countryCode) && !(code.has(csvObjArr[j].countryCode))) {
+        count++;
+        sum = sum + Number.parseFloat(csvObjArr[i].values) + Number.parseFloat(csvObjArr[j].values);
+        countryName = csvObjArr[j].countryName;
+        codeOfCountry = csvObjArr[j].countryCode;
+      }
+    }
+    if((sum !== 0 && sum !== undefined) && (count !== 0 && count !== undefined)){
+      findAverage(sum, count);
+    }
+    if((countryName !== undefined && countryName !== null) && (average !== undefined && average !== 0) && (sum !== undefined && sum !== 0) && (count !== undefined && count !== 0) && (codeOfCountry !== undefined && codeOfCountry !== null)) {
+      createJSONObject(countryName, average, codeOfCountry);
+    }
+
+  }
+  /*for(var i = 0; i < csvObjArr.length; i++) {
+    sum = 0;
+    average = 0;
+    count = 0;
+    var tempArray = [];
+    for(var j=1; j < csvObjArr.length; j++) {
+      if(csvObjArr[i].countryCode === csvObjArr[i].countryCode) {
+        count++;
+        sum = sum + Number.parseFloat(csvObjArr[i].values) + Number.parseFloat(csvObjArr[j].values);
+        countryName = csvObjArr[i].countryName;
+      }else {
+        tempArray.push(csvObjArr[j]);
+      }
+    }
+    if((sum !== 0 && sum !== undefined) && (count !== 0 && count !== undefined)){
+      findAverage(sum, count);
+    }
+    if((countryName !== undefined && countryName !== null) && (average !== undefined && average !== 0) && (sum !== undefined && sum !== 0) && (count !== undefined && count !== 0)) {
+      createJSONObject(countryName, average);
+    }
+    if(tempArray.length > 0 && tempArray !== null){
+      //console.log(tempArray);
+      csvObjArr = tempArray;
+      //console.log(csvObjArr);
+    }
+  }*/
+  console.log(code);
+  jsonObjArr.sort(function(a, b) {
+    var value1 = a['averageValue'];
+    var value2 = b['averageValue'];
     return value2-value1;
   });
-  var finalObject = csvObjArr.slice(0, 5);
+  var finalObject = jsonObjArr.slice(0, 5);
+  //console.log(jsonObjArr);
   var json = JSON.stringify(finalObject);
-  fs.writeFile('jason3.json', json, 'utf-8');
+  fs.writeFile('bar-chart.json', json, 'utf-8');
 });

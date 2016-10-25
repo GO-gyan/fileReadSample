@@ -15,10 +15,10 @@ function CSVObj(countryName, countryCode, indicatorName, indicatorCode, year, va
   this.year = year;
   this.values = values;
 };
-function JSONObj(countryName, indicator, averageValue) {
+function JSONObj(countryName, maleAveVal, femaleAveVal) {
   this.countryName = countryName;
-  this.indicator = indicator;
-  this.averageValue = averageValue;
+  this.male = maleAveVal;
+  this.female = femaleAveVal;
 }
 
 const rl = readline.createInterface({
@@ -26,7 +26,7 @@ const rl = readline.createInterface({
   output: process.stdout,
   terminal: false
 });
-var counter = 0, count, sum, average = 0, indicator = '', countryName = '';
+var counter = 0, counterF, counterM, sumM, sumF, averageF = 0; averageM = 0, countryName = '';
 rl.on('line', function(line) {
   if(counter === 0){
     dataArr = line;
@@ -46,40 +46,48 @@ rl.on('line', function(line) {
   //console.log(line[0]);
   counter++;
 });
-function findAverage(sum, count) {
-    average = sum/count;
+function findAverage(sumM, counterM, sumF, counterF) {
+    averageM = sumM/counterM;
+    averageF = sumF/counterF
     //console.log('Sum::'+sum);
 }
-function createJSONObject(countryName, indicator, average) {
+function createJSONObject(countryName) {
     //console.log(sum+'==>'+indicator+'==>'+countryName);
-    var obj = new JSONObj(countryName, indicator, average);
+    var obj = new JSONObj(countryName, averageM, averageF);
     jsonObjArr.push(obj);
 }
 rl.on('close', function() {
   var headers = dataArr.split(',');
 
-  for(var y=0; y < indicatorCode1.length; y++){
     for(var x=0; x < asianCountryCode.length; x++) {
-      count = 0;
-      sum = 0;
+      counterF = 0;
+      counterM = 0;
+      sumF = 0;
+      sumM = 0;
+      averageM = 0;
+      averageF = 0;
       for(var z=0; z < csvObjArr.length; z++) {
-        if((csvObjArr[z].countryCode === asianCountryCode[x]) && (csvObjArr[z].indicatorCode === indicatorCode1[y])) {
-          count++;
-          sum = sum + Number.parseFloat(csvObjArr[z].values);
-          countryName = csvObjArr[z].countryName;
+        if(csvObjArr[z].countryCode === asianCountryCode[x]) {
+          if (csvObjArr[z].indicatorCode === 'SP.DYN.LE00.FE.IN') {
+            counterF++;
+            sumF = sumF + Number.parseFloat(csvObjArr[z].values);
+            countryName = csvObjArr[z].countryName;
+          } else if(csvObjArr[z].indicatorCode === 'SP.DYN.LE00.MA.IN') {
+            counterM++;
+            sumM = sumM + Number.parseFloat(csvObjArr[z].values);
+            countryName = csvObjArr[z].countryName;
+          }
         }
       }
-      if((sum !== 0 && sum !== undefined) && (count !== 0 && count !== undefined)){
-        findAverage(sum, count);
+      if((sumM !== 0 && sumM !== undefined) && (sumF !== 0 && sumF !== undefined) && (counterF !== 0 && counterF !== undefined) && (counterM !== 0 && counterM !== undefined)){
+        findAverage(sumM, counterM, sumF, counterF);
       }
-      if((countryName !== null && countryName !== undefined) && (indicatorCode1[y] !== null && indicatorCode1[y] !== undefined) && (average !== 0 && average !== undefined) && (sum !== 0 && sum !== undefined) && (count !== 0 && count !== undefined)) {
-        createJSONObject(countryName, indicatorCode1[y], average);
+      if((countryName !== null && countryName !== undefined) && (averageM !== 0 && averageM !== undefined) && (averageF !== 0 && averageF !== undefined)) {
+        createJSONObject(countryName);
       }
     }
 
-  }
-
   var json = JSON.stringify(jsonObjArr);
-  fs.writeFile('jason1.json', json, 'utf-8');
+  fs.writeFile('stacked-chart.json', json, 'utf-8');
 
 });
